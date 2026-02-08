@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photo Card Generator Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @font-face {
+            font-family: 'LalsaluBold';
+            src: local('Lalsalu Bold'), local('Lalsalu-Bold'), url('LalsaluBold.ttf');
+        }
+
+        body {
+            font-family: 'Hind Siliguri', sans-serif;
+            background-color: #f8fafc;
+        }
+
+        .canvas-container {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+            background: white;
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        canvas {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .input-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+        }
+
+        .ctrl-btn {
+            background: white;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            color: #475569;
+            font-weight: bold;
+            min-height: 36px;
+            width: 100%;
+        }
+        .ctrl-btn:hover {
+            background-color: #f8fafc;
+            border-color: #3b82f6;
+            color: #1d4ed8;
+        }
+        
+        .mode-btn {
+            flex: 1;
+            padding: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: 8px;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .active-headline {
+            background-color: #eff6ff;
+            color: #1d4ed8;
+            border-color: #3b82f6;
+        }
+
+        .active-source {
+            background-color: #f0fdf4;
+            color: #15803d;
+            border-color: #22c55e;
+        }
+
+        .inactive-mode {
+            background-color: #f1f5f9;
+            color: #64748b;
+        }
+
+        /* মোবাইলে কমপ্যাক্ট ভিউ */
+        @media (max-width: 640px) {
+            .compact-panel {
+                padding: 0.75rem !important;
+            }
+            .ctrl-btn {
+                min-height: 32px;
+                font-size: 0.75rem;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen p-3 md:p-6 lg:p-8">
+
+    <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10">
+        
+        <!-- বাম পাশের সেকশন (ইনপুট) -->
+        <div class="w-full lg:col-span-5 flex flex-col gap-6 order-1">
+            
+            <div class="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-slate-200">
+                <div class="border-b border-slate-100 pb-3 mb-5">
+                    <h1 class="text-xl md:text-2xl font-bold text-slate-800">ফটোকার্ড মেকার</h1>
+                    <p class="text-xs text-slate-500 mt-1">আপনার ক্রিয়েটিভিটির প্রমান দিন</p>
+                </div>
+
+                <div id="templateErrorMsg" class="hidden mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                    <p class="text-xs text-amber-700 font-bold mb-2">💡 ব্যাকগ্রাউন্ড টেমপ্লেট লোড হয়নি</p>
+                    <input type="file" id="manualTemplateInput" accept="image/*" class="block w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-amber-100 file:text-amber-700">
+                </div>
+
+                <div class="mb-5 bg-blue-50 p-4 rounded-xl border border-blue-100">
+                    <label class="input-label text-blue-900">১. ছবি নির্বাচন করুন (১-২টি)</label>
+                    <input type="file" id="imageInput" accept="image/*" multiple class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer">
+                </div>
+
+                <div class="mb-5">
+                    <label class="input-label">২. সংবাদ শিরোনাম</label>
+                    <textarea id="headlineInput" rows="2" placeholder="এখানে সংবাদ লিখুন..." class="w-full p-3 bg-slate-50 border border-slate-300 rounded-lg outline-none transition text-base md:text-lg focus:border-blue-400 focus:ring-2 focus:ring-blue-100"></textarea>
+                </div>
+
+                <div class="mb-2">
+                    <label class="input-label">৩. সূত্র বা প্রতিবেদকের নাম</label>
+                    <input type="text" id="sourceInput" placeholder="যেমন: নিজস্ব প্রতিবেদক" class="w-full p-3 bg-slate-50 border border-slate-300 rounded-lg outline-none transition text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100">
+                </div>
+            </div>
+
+            <!-- ডেস্কটপে কাস্টমাইজেশন -->
+            <div class="hidden lg:flex flex-col gap-4" id="desktopCustomizerPlaceholder"></div>
+        </div>
+
+        <!-- প্রিভিউ সেকশন -->
+        <div class="w-full lg:col-span-7 order-2 flex flex-col items-center">
+            <div class="w-full flex flex-col items-center">
+                <div class="canvas-container shadow-lg">
+                    <canvas id="cardCanvas"></canvas>
+                </div>
+            </div>
+
+            <!-- মোবাইলে কাস্টমাইজেশন প্রিভিউর নিচে -->
+            <div class="w-full max-w-[600px] lg:hidden mt-4 mb-8" id="mobileCustomizerArea"></div>
+        </div>
+
+        <!-- কাস্টমাইজেশন টেমপ্লেট (৫০/৫০ লেআউট) -->
+        <template id="customizerTemplate">
+            <div class="bg-white p-3 md:p-5 rounded-xl shadow-sm border border-slate-200 w-full compact-panel">
+                <div class="flex gap-2 mb-4 p-1 bg-slate-100 rounded-lg">
+                    <button id="modeHeadline" onclick="setActiveMode('headline')" class="mode-btn active-headline">
+                        শিরোনাম এডিট
+                    </button>
+                    <button id="modeSource" onclick="setActiveMode('source')" class="mode-btn inactive-mode">
+                        সূত্র এডিট
+                    </button>
+                </div>
+
+                <div class="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                    <div class="grid grid-cols-2 gap-4 items-start">
+                        <!-- বাম পাশ: পজিশন কন্ট্রোল (৫০%) -->
+                        <div class="flex flex-col items-center border-r border-slate-200 pr-2">
+                            <span class="text-[20px] font-bold text-slate-800 mb-1">পজিশন</span>
+                            <div class="grid grid-cols-3 gap-1 w-full max-w-[120px]">
+                                <div></div>
+                                <button onclick="moveText(0, -5)" class="ctrl-btn text-[10px]">↑</button>
+                                <div></div>
+                                <button onclick="moveText(-5, 0)" class="ctrl-btn text-[10px]">←</button>
+                                <button onclick="resetCurrentSettings()" class="ctrl-btn text-[10px] bg-red-50 text-red-500">↺</button>
+                                <button onclick="moveText(5, 0)" class="ctrl-btn text-[10px]">→</button>
+                                <div></div>
+                                <button onclick="moveText(0, 5)" class="ctrl-btn text-[10px]">↓</button>
+                                <div></div>
+                            </div>
+                        </div>
+
+                        <!-- ডান পাশ: সাইজ ও লাইন গ্যাপ (৫০%) -->
+                        <div class="flex flex-col space-y-3 pl-2">
+                            <div>
+                                <span class="text-[13px] font-bold text-slate-800 mb-1 block">ফন্ট সাইজ</span>
+                                <div class="flex gap-1">
+                                    <button onclick="resizeText(-2)" class="ctrl-btn text-[10px]">ছোট</button>
+                                    <button onclick="resizeText(2)" class="ctrl-btn text-[10px]">বড়</button>
+                                </div>
+                            </div>
+                            <div>
+                                <span class="text-[13px] font-bold text-slate-800 mb-1 block">লাইন গ্যাপ</span>
+                                <div class="flex gap-1">
+                                    <button onclick="adjustLineHeight(-0.05)" class="ctrl-btn text-[15px]">-</button>
+                                    <button onclick="adjustLineHeight(0.05)" class="ctrl-btn text-[15px]">+</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- কালার ও ডাউনলোড -->
+                <div class="mt-4 flex flex-col sm:flex-row gap-3 items-center justify-between">
+                    <div class="flex gap-2 bg-slate-50 p-2 rounded-lg border border-slate-200 w-full sm:w-auto justify-center">
+                        <button class="w-6 h-6 rounded-full bg-black border border-white" onclick="setColor('#000000')"></button>
+                        <button class="w-6 h-6 rounded-full bg-[#dc2626]" onclick="setColor('#dc2626')"></button>
+                        <button class="w-6 h-6 rounded-full bg-[#1d4ed8]" onclick="setColor('#1d4ed8')"></button>
+                        <button class="w-6 h-6 rounded-full bg-white border border-slate-300" onclick="setColor('#ffffff')"></button>
+                    </div>
+                    
+                    <button id="downloadBtn" class="w-full sm:w-auto bg-slate-900 hover:bg-black text-white font-bold py-2.5 px-6 rounded-lg shadow-md transition transform active:scale-[0.98] flex justify-center items-center gap-2 text-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                        ডাউনলোড
+                    </button>
+                </div>
+            </div>
+        </template>
+    </div>
+
+<script>
+    const CONFIG = {
+        canvasSize: 1080,
+        photoArea: { x: 41, y: 151, w: 998, h: 556 },
+        textZone: {
+            top: 740,
+            bottom: 946,
+            maxWidth: 950,
+            initialFontSize: 110, 
+            lineHeightFactor: 1.15
+        },
+        sourceSettings: {
+            fontSize: 35,
+            gap: 15 
+        },
+        datePos: { x: 1061, y: 1045 }
+    };
+
+    const canvas = document.getElementById('cardCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    let templateImg = new Image();
+    let uploadedImages = [];
+    let templateLoaded = false;
+    let activeMode = 'headline'; 
+
+    const settings = {
+        headline: { offsetX: 0, offsetY: 0, fontSizeOffset: 0, lineHeightOffset: 0, color: '#000000' },
+        source: { offsetX: 0, offsetY: 0, fontSizeOffset: 0, lineHeightOffset: 0, color: '#475569' }
+    };
+
+    // আপনার ছবির Base64 কোড নিচের উদ্ধৃতি চিহ্নের (" ") মাঝখানে বসান
+    const base64Template = "";
+
+    function moveCustomizer() {
+        const desktopPlaceholder = document.getElementById('desktopCustomizerPlaceholder');
+        const mobileArea = document.getElementById('mobileCustomizerArea');
+        const template = document.getElementById('customizerTemplate');
+        
+        desktopPlaceholder.innerHTML = '';
+        mobileArea.innerHTML = '';
+        
+        const content = template.content.cloneNode(true);
+        
+        if (window.innerWidth >= 1024) {
+            desktopPlaceholder.appendChild(content);
+        } else {
+            mobileArea.appendChild(content);
+        }
+
+        document.getElementById('downloadBtn').addEventListener('click', downloadCard);
+        updateModeButtons();
+    }
+
+    window.addEventListener('resize', moveCustomizer);
+    window.addEventListener('DOMContentLoaded', () => {
+        moveCustomizer();
+        initApp();
+    });
+
+    function initApp() {
+        templateImg.crossOrigin = "anonymous";
+        
+        // যদি base64Template থাকে তবে সেটি লোড হবে, নাহলে template.png খুঁজবে
+        if (base64Template && base64Template.length > 100) {
+            templateImg.src = base64Template;
+        } else {
+            templateImg.src = 'template.png'; 
+        }
+        
+        templateImg.onload = () => {
+            templateLoaded = true;
+            document.getElementById('templateErrorMsg').classList.add('hidden');
+            render();
+        };
+        
+        templateImg.onerror = () => {
+            document.getElementById('templateErrorMsg').classList.remove('hidden');
+            render(); 
+        };
+
+        document.getElementById('manualTemplateInput').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    templateImg.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        canvas.width = CONFIG.canvasSize;
+        canvas.height = CONFIG.canvasSize;
+
+        document.getElementById('imageInput').addEventListener('change', handleImageUpload);
+        document.getElementById('headlineInput').addEventListener('input', render);
+        document.getElementById('sourceInput').addEventListener('input', render);
+    }
+
+    function setActiveMode(mode) {
+        activeMode = mode;
+        updateModeButtons();
+    }
+
+    function updateModeButtons() {
+        const hBtn = document.getElementById('modeHeadline');
+        const sBtn = document.getElementById('modeSource');
+        if (!hBtn || !sBtn) return;
+
+        if (activeMode === 'headline') {
+            hBtn.className = "mode-btn active-headline";
+            sBtn.className = "mode-btn inactive-mode";
+        } else {
+            hBtn.className = "mode-btn inactive-mode";
+            sBtn.className = "mode-btn active-source";
+        }
+    }
+
+    function handleImageUpload(e) {
+        const files = Array.from(e.target.files).slice(0, 2); 
+        if (files.length === 0) return;
+        uploadedImages = [];
+        let loaded = 0;
+        files.forEach(file => {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    uploadedImages.push(img);
+                    loaded++;
+                    if (loaded === files.length) render();
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function moveText(x, y) {
+        settings[activeMode].offsetX += x;
+        settings[activeMode].offsetY += y;
+        render();
+    }
+
+    function resizeText(size) {
+        settings[activeMode].fontSizeOffset += size;
+        render();
+    }
+
+    function adjustLineHeight(val) {
+        settings[activeMode].lineHeightOffset += val;
+        render();
+    }
+
+    function resetCurrentSettings() {
+        const defaultColor = activeMode === 'headline' ? '#000000' : '#475569';
+        settings[activeMode] = { offsetX: 0, offsetY: 0, fontSizeOffset: 0, lineHeightOffset: 0, color: defaultColor };
+        render();
+    }
+
+    function setColor(color) {
+        settings[activeMode].color = color;
+        render();
+    }
+
+    function getBengaliDate() {
+        const months = ["জানুয়ারি", "ফেব্রুয়ারি", "মার্চ", "এপ্রিল", "মে", "জুন", "জুলাই", "আগস্ট", "সেপ্টেম্বর", "অক্টোবর", "নভেম্বর", "ডিসেম্বর"];
+        const digits = ["০","১","২","৩","৪","৫","৬","৭","৮","৯"];
+        const date = new Date();
+        const day = date.getDate().toString().split('').map(d => digits[d]).join('');
+        const month = months[date.getMonth()];
+        const year = date.getFullYear().toString().split('').map(d => digits[d]).join('');
+        return `${day} ${month} ${year}`;
+    }
+
+    function render() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (templateLoaded) {
+            ctx.drawImage(templateImg, 0, 0, CONFIG.canvasSize, CONFIG.canvasSize);
+        } else {
+            drawFallbackDesign();
+        }
+        if (uploadedImages.length > 0) {
+            drawImages();
+        }
+        drawTextContent();
+        drawDate();
+    }
+
+    function drawImages() {
+        const { x, y, w, h } = CONFIG.photoArea;
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(x, y, w, h);
+        ctx.clip(); 
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(x, y, w, h);
+        if (uploadedImages.length === 1) {
+            drawImageSmart(uploadedImages[0], x, y, w, h);
+        } else if (uploadedImages.length >= 2) {
+            const gap = 4;
+            const halfW = (w - gap) / 2;
+            drawImageSmart(uploadedImages[0], x, y, halfW, h);
+            drawImageSmart(uploadedImages[1], x + halfW + gap, y, halfW, h);
+        }
+        ctx.restore();
+    }
+
+    function drawImageSmart(img, x, y, w, h) {
+        ctx.save();
+        ctx.filter = "blur(20px) brightness(0.9)";
+        drawCoverImageLogic(img, x, y, w, h);
+        ctx.restore();
+        const imgRatio = img.width / img.height;
+        const targetRatio = w / h;
+        let drawX, drawY, drawW, drawH;
+        if (imgRatio > targetRatio) {
+            drawW = w;
+            drawH = w / imgRatio;
+            drawX = x;
+            drawY = y + (h - drawH) / 2;
+        } else {
+            drawH = h;
+            drawW = h * imgRatio;
+            drawY = y;
+            drawX = x + (w - drawW) / 2;
+        }
+        ctx.save();
+        ctx.shadowColor = "rgba(0,0,0,0.3)";
+        ctx.shadowBlur = 15;
+        ctx.shadowOffsetY = 5;
+        ctx.drawImage(img, drawX, drawY, drawW, drawH);
+        ctx.restore();
+    }
+
+    function drawCoverImageLogic(img, x, y, w, h) {
+        const imgRatio = img.width / img.height;
+        const targetRatio = w / h;
+        let drawX, drawY, drawW, drawH;
+        if (imgRatio > targetRatio) {
+            drawH = h;
+            drawW = img.width * (h / img.height);
+            drawX = x + (w - drawW) / 2;
+            drawY = y;
+        } else {
+            drawW = w;
+            drawH = img.height * (w / img.width);
+            drawX = x;
+            drawY = y + (h - drawH) / 2;
+        }
+        ctx.drawImage(img, drawX, drawY, drawW, drawH);
+    }
+
+    function drawTextContent() {
+        const headline = document.getElementById('headlineInput').value.trim();
+        const source = document.getElementById('sourceInput').value.trim();
+        if (!headline && !source) return;
+        const { top, bottom, maxWidth, initialFontSize, lineHeightFactor } = CONFIG.textZone;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        let fontSize = initialFontSize;
+        let lines = [];
+        const fontName = "'LalsaluBold', 'Hind Siliguri', Arial"; 
+        
+        const hSettings = settings.headline;
+        const sSettings = settings.source;
+
+        if (headline) {
+            ctx.fillStyle = hSettings.color; 
+            do {
+                ctx.font = `bold ${fontSize}px ${fontName}`;
+                lines = getLines(ctx, headline, maxWidth);
+                const currentHeight = (lines.length * fontSize * lineHeightFactor);
+                const sourceBaseHeight = source ? (CONFIG.sourceSettings.fontSize + CONFIG.sourceSettings.gap) : 0;
+                if (currentHeight + sourceBaseHeight > (bottom - top) || lines.length > 2) {
+                    fontSize -= 2;
+                } else {
+                    break;
+                }
+            } while (fontSize > 40);
+            
+            const finalFontSize = fontSize + hSettings.fontSizeOffset;
+            const finalLineHeightFactor = lineHeightFactor + hSettings.lineHeightOffset;
+            const lineHeight = finalFontSize * finalLineHeightFactor;
+            let startY;
+            if (source) {
+                const sourceY = bottom - 10 + sSettings.offsetY; 
+                const sourceFontSize = CONFIG.sourceSettings.fontSize + sSettings.fontSizeOffset;
+                ctx.font = `normal ${sourceFontSize}px 'Hind Siliguri', Arial`;
+                ctx.fillStyle = sSettings.color; 
+                const sourceX = (CONFIG.canvasSize / 2) + sSettings.offsetX;
+                ctx.fillText(`— ${source}`, sourceX, sourceY);
+                const availableCenterY = (top + (bottom - 50)) / 2;
+                startY = availableCenterY - ((lines.length - 1) * lineHeight) / 2;
+            } else {
+                const centerY = (top + bottom) / 2;
+                startY = centerY - ((lines.length - 1) * lineHeight) / 2;
+            }
+            startY += hSettings.offsetY;
+            const finalX = (CONFIG.canvasSize / 2) + hSettings.offsetX;
+            ctx.fillStyle = hSettings.color; 
+            ctx.font = `bold ${finalFontSize}px ${fontName}`;
+            lines.forEach((line, i) => {
+                ctx.fillText(line.trim(), finalX, startY + (i * lineHeight));
+            });
+        } 
+        else if (source) {
+            const sourceFontSize = 50 + sSettings.fontSizeOffset;
+            const sourceX = (CONFIG.canvasSize / 2) + sSettings.offsetX;
+            const sourceY = ((top + bottom)/2) + sSettings.offsetY;
+            ctx.font = `normal ${sourceFontSize}px 'Hind Siliguri', Arial`;
+            ctx.fillStyle = sSettings.color; 
+            ctx.fillText(source, sourceX, sourceY);
+        }
+    }
+
+    function getLines(ctx, text, maxWidth) {
+        let words = text.split(" ");
+        let lines = [];
+        let currentLine = words[0];
+        for (let i = 1; i < words.length; i++) {
+            let word = words[i];
+            let width = ctx.measureText(currentLine + " " + word).width;
+            if (width < maxWidth) currentLine += " " + word;
+            else { lines.push(currentLine); currentLine = word; }
+        }
+        lines.push(currentLine);
+        return lines;
+    }
+
+    function drawDate() {
+        const dateStr = getBengaliDate(); 
+        const { x, y } = CONFIG.datePos;
+        ctx.textAlign = "right"; 
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "#ffffff"; 
+        ctx.font = "bold 35px 'LalsaluBold', 'Hind Siliguri', sans-serif";
+        ctx.fillText(dateStr, x, y);
+    }
+
+    function drawFallbackDesign() {
+        ctx.fillStyle = "#f1f5f9";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#94a3b8";
+        ctx.font = "30px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("টেমপ্লেট আপলোড করুন", canvas.width/2, canvas.height/2);
+    }
+
+    function downloadCard() {
+        const link = document.createElement('a');
+        link.download = `NewsCard_${Date.now()}.png`;
+        link.href = canvas.toDataURL('image/png', 1.0);
+        link.click();
+    }
+</script>
+</body>
+</html>
